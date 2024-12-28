@@ -22,6 +22,7 @@ from absl import app
 from absl import flags
 import numpy as np
 
+from open_spiel.python import games
 from open_spiel.python.algorithms import mcts
 from open_spiel.python.algorithms.alpha_zero import evaluator as az_evaluator
 from open_spiel.python.algorithms.alpha_zero import model as az_model
