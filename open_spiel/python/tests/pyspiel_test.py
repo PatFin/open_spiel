@@ -110,6 +110,7 @@ EXPECTED_GAMES = frozenset([
     "phantom_ttt_ir",
     "pig",
     "python_block_dominoes",
+    "python_connect_four_3d",
     "python_dynamic_routing",
     "python_iterated_prisoners_dilemma",
     "python_mfg_crowd_avoidance",
@@ -161,7 +162,7 @@ class PyspielTest(absltest.TestCase):
     self.assertCountEqual(game_names, expected)
 
   def test_default_loadable(self):
-    # Games which cannmot be loaded with default parameters will be skipped by
+    # Games which cannot be loaded with default parameters will be skipped by
     # several standard tests. We make a list of such games here in order to make
     # implementors think twice about making new games non-default-loadable
     non_default_loadable = [
