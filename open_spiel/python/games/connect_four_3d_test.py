@@ -6,6 +6,7 @@ This allows easier checking of termination conditions which were
 
 
 from absl.testing import absltest
+from open_spiel.python.games import connect_four_3d
 import pyspiel
 
 id = 0
@@ -26,8 +27,6 @@ class ConnectFour3DTest(absltest.TestCase):
         Naturally, as the second player is one turn behind, the first
         player wins.
         """
-        #print(f"{id}_vertical{file},{rank} 7 1.0")
-        #id +=1
         game = pyspiel.load_game("python_connect_four_3d")
         state = game.new_initial_state()
 
@@ -39,7 +38,7 @@ class ConnectFour3DTest(absltest.TestCase):
 
         state.apply_action(winning_move)
 
-        self.assertTrue(state.isTerminal(), "The game should be over!")
+        self.assertTrue(state.is_terminal(), "The game should be over!")
         self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
     
     def test_vertical_win(self):
@@ -48,299 +47,319 @@ class ConnectFour3DTest(absltest.TestCase):
                 self.vertical_win(f,r)
 
 
+    def file_win(self, file):
+        """
+        The two players fill-in a file in parallel. Player 0 (which
+        is ahead) wins the game systematically.
+        """
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        winning_file = file
+        losing_file = (file + 1) % 4
 
-def file_win(file):
-    """
-    The two players fill-in a file in parallel. Player 0 (which
-    is ahead) wins the game systematically.
-    """
-    global id
-    print(f"{id}_file{file} 7 1.0")
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    winning_file = file
-    losing_file = (file + 1) % 4
+        for rank in range(3):
+            win_move = winning_file * 4 + rank
+            lose_move = losing_file * 4 + rank
+            state.apply_action(win_move)
+            state.apply_action(lose_move)
 
-    for rank in range(3):
-        win_move = winning_file * 4 + rank
-        lose_move = losing_file * 4 + rank
-        state.apply_action(win_move)
-        state.apply_action(lose_move)
+        last_winning_move = winning_file * 4 + 3
+        state.apply_action(last_winning_move)
 
-    last_winning_move = winning_file * 4 + 3
-    state.apply_action(last_winning_move)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-def rank_win(rank):
-    """
-    The two players fill-in a rank in paralle, Player 0 (which is ahead) wins the game
-    """
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    winning_rank = rank
-    losing_rank = (rank + 1) % 4
+    def test_file_win(self):
+        # Check file victories (on the first row)
+        for file in range(4):
+            self.file_win(file)
 
-    for file in range(3):
-        win_move = move(file, winning_rank)
-        lose_move = move(file, losing_rank)
-        state.apply_action(win_move)
-        state.apply_action(lose_move)
+    def rank_win(self,rank):
+        """
+        The two players fill-in a rank in paralle, Player 0 (which is ahead) wins the game
+        """
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        winning_rank = rank
+        losing_rank = (rank + 1) % 4
 
-    last_winning_move = 3 * 4 + winning_rank
-    state.apply_action(last_winning_move)
+        for file in range(3):
+            win_move = move(file, winning_rank)
+            lose_move = move(file, losing_rank)
+            state.apply_action(win_move)
+            state.apply_action(lose_move)
 
-def diagonal():
-    """
-    The two players repeat the same moves, allowing Player 0 to complete the diagonal on
-    the first row
-    """
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
+        last_winning_move = 3 * 4 + winning_rank
+        state.apply_action(last_winning_move)
 
-    for i in range(3):
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
+
+    def test_rank_win(self):
+        for i in range(4):
+            self.rank_win(i)
+
+    def test_diagonal(self):
+        """
+        The two players repeat the same moves, allowing Player 0 to complete the diagonal on
+        the first row
+        """
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+
+        for i in range(3):
+            m = move(i, i)
+            state.apply_action(m) # Player 0 move
+            state.apply_action(m) # Player 1 move
+
+        # Last move for Player 0
+        i = 3
         m = move(i, i)
-        state.apply_action(m) # Player 0 move
-        state.apply_action(m) # Player 1 move
+        state.apply_action(m)
 
-    # Last move for Player 0
-    i = 3
-    m = move(i, i)
-    state.apply_action(m)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-def anti_diagonal():
-    """
-    The two players repeat the same moves, allowing Player 0 to complete the diagonal on
-    the first row. This is the anti-diagonal
-    """
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
+    def test_anti_diagonal(self):
+        """
+        The two players repeat the same moves, allowing Player 0 to complete the diagonal on
+        the first row. This is the anti-diagonal
+        """
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
 
-    for i in range(3):
+        for i in range(3):
+            m = move(3 - i, i)
+            state.apply_action(m) # Player 0 move
+            state.apply_action(m) # Player 1 move
+
+        # Last move for Player 0
+        i = 3
         m = move(3 - i, i)
-        print(m) # Player 0 move
-        print(m) # Player 1 move
+        state.apply_action(m)
 
-    # Last move for Player 0
-    i = 3
-    m = move(3 - i, i)
-    print(m)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-def rising_file(file):
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    spare_file = (file + 1) % 4
+    def rising_file(self, file):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        spare_file = (file + 1) % 4
 
-    # First moves
-    print(move(file, 0))
+        # First moves
+        state.apply_action(move(file, 0))
+        state.apply_action(move(file, 1))
+        state.apply_action(move(file, 1))
+        state.apply_action(move(file, 2))
+        state.apply_action(move(file, 2))
+        state.apply_action(move(file, 3))
+        state.apply_action(move(file, 2))
+        state.apply_action(move(file, 3))
+        state.apply_action(move(file, 3))
+        state.apply_action(move(spare_file, 0))
+        state.apply_action(move(file, 3))
 
-    print(move(file, 1))
-    print(move(file, 1))
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    print(move(file, 2))
-    print(move(file, 2))
+    def test_rising_file(self):
+        for f in range(4):
+            self.rising_file(f)
 
-    print(move(file, 3))
-    print(move(file, 2))
+    def descending_file(self, file):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        spare_file = (file + 1) % 4
 
-    print(move(file, 3))
-    print(move(file, 3))
-    print(move(spare_file, 0))
-    print(move(file, 3))
+        # First moves
+        state.apply_action(move(file, 3 - 0))
+        state.apply_action(move(file, 3 - 1))
 
-def descending_file(file):
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    spare_file = (file + 1) % 4
+        state.apply_action(move(file, 3 - 1))
+        state.apply_action(move(file, 3 - 2))
 
-    # First moves
-    print(move(file, 3 - 0))
-    print(move(file, 3 - 1))
+        state.apply_action(move(file, 3 - 2))
+        state.apply_action(move(file, 3 - 3))
 
-    print(move(file, 3 - 1))
-    print(move(file, 3 - 2))
+        state.apply_action(move(file, 3 - 2))
+        state.apply_action(move(file, 3 - 3))
 
-    print(move(file, 3 - 2))
-    print(move(file, 3 - 3))
+        state.apply_action(move(file, 3 - 3))
+        state.apply_action(move(spare_file, 0))
 
-    print(move(file, 3 - 2))
-    print(move(file, 3 - 3))
+        state.apply_action(move(file, 3 - 3))
 
-    print(move(file, 3 - 3))
-    print(move(spare_file, 0))
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    print(move(file, 3 - 3))
+    def test_descending_file(self):
+        for f in range(4):
+            self.descending_file(f)
 
-def rising_rank(rank):
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    spare_rank = (rank + 1) % 4
+    def rising_rank(self, rank):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        spare_rank = (rank + 1) % 4
 
-    # First moves
-    print(move(0, rank))
+        # First moves
+        state.apply_action(move(0, rank))
 
-    print(move(1, rank))
-    print(move(1, rank))
+        state.apply_action(move(1, rank))
+        state.apply_action(move(1, rank))
 
-    print(move(2, rank))
-    print(move(2, rank))
+        state.apply_action(move(2, rank))
+        state.apply_action(move(2, rank))
 
-    print(move(3, rank))
-    print(move(2, rank))
+        state.apply_action(move(3, rank))
+        state.apply_action(move(2, rank))
 
-    print(move(3, rank))
-    print(move(3, rank))
-    print(move(0, spare_rank))
-    print(move(3, rank))
+        state.apply_action(move(3, rank))
+        state.apply_action(move(3, rank))
+        state.apply_action(move(0, spare_rank))
+        state.apply_action(move(3, rank))
 
-def descending_rank(rank):
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    spare_rank = (rank + 1) % 4
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    # First moves
-    print(move(3 - 0, rank))
+    def test_rising_rank(self):
+        for r in range(4):
+            self.rising_rank(r)
 
-    print(move(3 - 1, rank))
-    print(move(3 - 1, rank))
-    print(move(3 - 2, rank))
-    print(move(3 - 2, rank))
-    print(move(3 - 3, rank))
-    print(move(3 - 2, rank))
-    print(move(3 - 3, rank))
-    print(move(3 - 3, rank))
-    print(move(3 - 0, spare_rank))
-    print(move(3 - 3, rank))
+    def descending_rank(self, rank):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        spare_rank = (rank + 1) % 4
 
-def rising_diagonal():
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    # The diagonal moves are 0, 5, 10, and 15
-    spare_move = 1 # 1 is outside the diagonal
+        # First moves
+        state.apply_action(move(3 - 0, rank))
 
-    # First moves
-    print(0 * 5)
-    print(1 * 5)
+        state.apply_action(move(3 - 1, rank))
+        state.apply_action(move(3 - 1, rank))
+        state.apply_action(move(3 - 2, rank))
+        state.apply_action(move(3 - 2, rank))
+        state.apply_action(move(3 - 3, rank))
+        state.apply_action(move(3 - 2, rank))
+        state.apply_action(move(3 - 3, rank))
+        state.apply_action(move(3 - 3, rank))
+        state.apply_action(move(3 - 0, spare_rank))
+        state.apply_action(move(3 - 3, rank))
 
-    print(1 * 5)
-    print(2 * 5)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    print(2 * 5)
-    print(3 * 5)
+    def test_descending_rank(self):
+        for r in range(4):
+            self.descending_rank(r)
 
-    print(2 * 5)
-    print(3 * 5)
+    def test_rising_diagonal(self):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        # The diagonal moves are 0, 5, 10, and 15
+        spare_move = 1 # 1 is outside the diagonal
 
-    print(3 * 5)
-    print(spare_move)
-    
-    print(3 * 5)
+        # First moves
+        state.apply_action(0 * 5)
+        state.apply_action(1 * 5)
 
-def rising_anti_diagonal():
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    # The anti-diagonal moves are 3, 6, 9, and 12
-    spare_move = 1 # 1 is outside the diagonal
+        state.apply_action(1 * 5)
+        state.apply_action(2 * 5)
 
-    # First moves
-    print((0 + 1) * 3)
-    print((1 + 1) * 3)
+        state.apply_action(2 * 5)
+        state.apply_action(3 * 5)
 
-    print((1 + 1) * 3)
-    print((2 + 1) * 3)
+        state.apply_action(2 * 5)
+        state.apply_action(3 * 5)
 
-    print((2 + 1) * 3)
-    print((3 + 1) * 3)
+        state.apply_action(3 * 5)
+        state.apply_action(spare_move)
+        
+        state.apply_action(3 * 5)
 
-    print((2 + 1) * 3)
-    print((3 + 1) * 3)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    print((3 + 1) * 3)
-    print(spare_move)
-    
-    print((3 + 1) * 3)
 
-def descending_diagonal():
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
+    def test_rising_anti_diagonal(self):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        # The anti-diagonal moves are 3, 6, 9, and 12
+        spare_move = 1 # 1 is outside the diagonal
 
-    # The diagonal moves are 0, 5, 10, and 15
-    spare_move = 1 # 1 is outside the diagonal
+        # First moves
+        state.apply_action((0 + 1) * 3)
+        state.apply_action((1 + 1) * 3)
 
-    # First moves
-    print(3 * 5)
-    print(2 * 5)
+        state.apply_action((1 + 1) * 3)
+        state.apply_action((2 + 1) * 3)
 
-    print(2 * 5)
-    print(1 * 5)
+        state.apply_action((2 + 1) * 3)
+        state.apply_action((3 + 1) * 3)
 
-    print(1 * 5)
-    print(0 * 5)
+        state.apply_action((2 + 1) * 3)
+        state.apply_action((3 + 1) * 3)
 
-    print(1 * 5)
-    print(0 * 5)
+        state.apply_action((3 + 1) * 3)
+        state.apply_action(spare_move)
+        
+        state.apply_action((3 + 1) * 3)
 
-    print(0 * 5)
-    print(spare_move)
-    
-    print(0 * 5)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-def descending_anti_diagonal():
-    game = pyspiel.load_game("python_connect_four_3d")
-    state = game.new_initial_state()
-    # The anti-diagonal moves are 3, 6, 9, and 12
-    spare_move = 1 # 1 is outside the diagonal
+    def test_descending_diagonal(self):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
 
-    # First moves
-    print((3 + 1) * 3)
-    print((2 + 1) * 3)
+        # The diagonal moves are 0, 5, 10, and 15
+        spare_move = 1 # 1 is outside the diagonal
 
-    print((2 + 1) * 3)
-    print((1 + 1) * 3)
+        # First moves
+        state.apply_action(3 * 5)
+        state.apply_action(2 * 5)
 
-    print((1 + 1) * 3)
-    print((0 + 1) * 3)
+        state.apply_action(2 * 5)
+        state.apply_action(1 * 5)
 
-    print((1 + 1) * 3)
-    print((0 + 1) * 3)
+        state.apply_action(1 * 5)
+        state.apply_action(0 * 5)
 
-    print((0 + 1) * 3)
-    print(spare_move)
-    
-    print((0 + 1) * 3)
+        state.apply_action(1 * 5)
+        state.apply_action(0 * 5)
 
-def main():
-    global id
-    id = 0
-    # Check pile victories
-    for file in range(4):
-       for rank in range(4):
-           vertical_win(file,rank)
+        state.apply_action(0 * 5)
+        state.apply_action(spare_move)
+        
+        state.apply_action(0 * 5)
 
-    # Check file victories (on the first row)
-    for file in range(4):
-        file_win(file)
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
-    # Check rank victories (on the first row)
-    for rank in range(4):
-        rank_win(rank)
+    def test_descending_anti_diagonal(self):
+        game = pyspiel.load_game("python_connect_four_3d")
+        state = game.new_initial_state()
+        # The anti-diagonal moves are 3, 6, 9, and 12
+        spare_move = 1 # 1 is outside the diagonal
 
-    # Check flat diagonals
-    diagonal()
-    anti_diagonal()
+        # First moves
+        state.apply_action((3 + 1) * 3)
+        state.apply_action((2 + 1) * 3)
 
-    # Rising files and ranks
-    for file in range(4):
-        rising_file(file)
-        descending_file(file)
+        state.apply_action((2 + 1) * 3)
+        state.apply_action((1 + 1) * 3)
 
-    for rank in range(4):
-        rising_rank(rank)
-        descending_rank(rank)
+        state.apply_action((1 + 1) * 3)
+        state.apply_action((0 + 1) * 3)
 
-    # Check rising and descending diagonals
-    rising_diagonal()
-    rising_anti_diagonal()
-    descending_diagonal()
-    descending_anti_diagonal()
+        state.apply_action((1 + 1) * 3)
+        state.apply_action((0 + 1) * 3)
+
+        state.apply_action((0 + 1) * 3)
+        state.apply_action(spare_move)
+        
+        state.apply_action((0 + 1) * 3)
+
+        self.assertTrue(state.is_terminal(), "The game should be over!")
+        self.assertEqual(state.returns(), [1.0, -1.0], "The returns should be 1.0 for P0 and -1.0 for P1")
 
 if __name__ == "__main__":
     absltest.main()
